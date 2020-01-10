@@ -1,0 +1,68 @@
+<code>
+
+<source lang="bash">
+#!/bin/bash
+
+# Проверяем где установлен OpenOffice.org и PYTHON. 
+#Поправьте пути вручную, если они отличаются на вашей системе
+
+OOFFICE=`ls /usr/bin/openoffice.org3 /usr/bin/ooffice /usr/lib/openoffice/program/soffice | head -n 1`
+OOOPYTHON=`ls /opt/openoffice.org*/program/python /usr/bin/python | head -n 1`
+
+if [ ! -x "$OOFFICE" ]
+then
+ echo "Could not auto-detect OpenOffice.org binary"
+ exit
+fi
+
+if [ ! -x "$OOOPYTHON" ]
+then
+ echo "Could not auto-detect OpenOffice.org Python"
+ exit
+fi
+
+echo "Detected OpenOffice.org binary: $OOFFICE"
+echo "Detected OpenOffice.org python: $OOOPYTHON"
+
+# Reference: http://wiki.services.openoffice.org/wiki/Using_Python_on_Linux
+# If you use the OpenOffice.org that comes with Fedora or Ubuntu, uncomment the following line:
+# export PYTHONPATH="/usr/lib/openoffice.org/program" 
+
+# If you want to simulate for testing that there is no X server, uncomment the next line.
+#unset DISPLAY
+
+# Kill any running OpenOffice.org processes.
+killall -u `whoami` -q soffice
+
+# Это важная строчка: программа пытается скачать из сети скрипт на языке Python, который как раз 
+#нужен OpenOffice для конвертации файлов. Если все хорошо, то после запуска  converter.sh в 
+#каталоге появится файл с именем DocumentConverter.py. 
+#Если не получилось — скачайте файл  DocumentConverter.py 
+#вручную по адресу ниже и поместите в один каталог с этим скриптом.
+#Проверьте чтобы порт в скрипте был указан 8100
+test -f DocumentConverter.py || wget http://www.artofsolving.com/files/DocumentConverter.py
+
+# Start OpenOffice.org in listening mode on TCP port 8100.
+$OOFFICE "-accept=socket,host=localhost,port=8100;urp;StarOffice.ServiceManager" -norestore -nofirststartwizard -nologo -headless  &
+
+# Wait a few seconds to be sure it has started.
+sleep 5s
+
+# Здесь мы перечисляем имена файлов, которые хотим конвертировать: 
+#Имя исходного файла — в какой файл конвертируем. 
+# Самое приятно, что конвертировать можно не только в PDF, но и в любой формат, 
+#поддерживаемый OpenOffice.org
+# 
+# Из MS PowerPoint во Flash
+$OOOPYTHON DocumentConverter.py sample.ppt sample.swf
+
+#Из Excel в PDF
+$OOOPYTHON DocumentConverter.py sample.xls sample.pdf
+
+# Close OpenOffice.org.
+killall -u `whoami` soffice
+
+#---------------------------------------------------- 
+
+</source>
+</code>
